@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import joblib
 import os
+from PIL import Image
 
 # ✅ 모델 및 인코더 불러오기
 rf_model = joblib.load("rf_model.pkl")
@@ -56,27 +57,26 @@ if st.button("✅ 나에게 맞는 팀 추천받기"):
             font-size:48px !important;
             text-align:center;
         }
-        .logo {
-            display: block;
-            margin-left: auto;
-            margin-right: auto;
-            width: 200px;
-        }
         </style>
     """, unsafe_allow_html=True)
 
     st.markdown("---")
     st.markdown(f"<div class='big-font'>🎉 당신에게 어울리는 팀은... <br><br><b>{predicted_team}</b>!</div>", unsafe_allow_html=True)
 
-    # ✅ 이미지 표시 (PNG/JPG 등 지원, 없을 시 경고)
-    found_image = False
+    # ✅ 이미지 로딩 (확장자 자동 탐색)
+    image_found = False
     for ext in ["png", "jpg", "jpeg"]:
         image_path = f"images/{predicted_team}.{ext}"
         if os.path.exists(image_path):
-            st.image(image_path, caption=predicted_team, width=500)
-            found_image = True
-            break
-    if not found_image:
+            try:
+                img = Image.open(image_path)
+                st.image(img, caption=predicted_team, width=500)
+                image_found = True
+                break
+            except:
+                st.warning("이미지를 열 수 없습니다.")
+                break
+    if not image_found:
         st.warning("⚠️ 해당 팀의 로고 이미지를 찾을 수 없습니다.")
 
     st.markdown("---")
