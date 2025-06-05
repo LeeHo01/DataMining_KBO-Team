@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import joblib
 import os
+import base64
 from PIL import Image
 
 # ✅ 모델 및 인코더 불러오기
@@ -64,43 +65,44 @@ if st.button("✅ 나에게 맞는 팀 추천받기"):
         <style>
         .centered { text-align: center; }
         .big-font { font-size: 50px !important; }
-        .medium-font { font-size: 32px !important; }
+        .medium-font { font-size: 30px !important; }
+        .small-font { font-size: 22px !important; }
         </style>
     """, unsafe_allow_html=True)
 
     st.markdown(f"<div class='centered big-font'>🎉 당신에게 어울리는 팀은... <br><br><b>{top1_team['팀명']}</b>!</div>", unsafe_allow_html=True)
 
-    # ✅ 1위 로고 출력
-    img_path = None
-    for ext in ["png", "jpg", "jpeg"]:
-        candidate = f"images/{top1_team['팀명']}.{ext}"
-        if os.path.exists(candidate):
-            img_path = candidate
-            break
-    if img_path:
-        st.image(Image.open(img_path), caption=top1_team['팀명'], width=300)
+    def get_base64_image(image_path):
+        with open(image_path, "rb") as f:
+            data = f.read()
+        return base64.b64encode(data).decode()
 
-    # ✅ 2~3위 결과
-    st.markdown("<div class='centered medium-font'>🥈 아쉽게 2위: <b>{}</b> ({}%)</div>".format(top2_team['팀명'], top2_team['예측 확률']), unsafe_allow_html=True)
-    img_path2 = None
-    for ext in ["png", "jpg", "jpeg"]:
-        candidate = f"images/{top2_team['팀명']}.{ext}"
-        if os.path.exists(candidate):
-            img_path2 = candidate
-            break
-    if img_path2:
-        st.image(Image.open(img_path2), caption=top2_team['팀명'], width=200)
+    def render_team_image(team_name, width):
+        for ext in ["png", "jpg", "jpeg"]:
+            img_path = f"images/{team_name}.{ext}"
+            if os.path.exists(img_path):
+                img_base64 = get_base64_image(img_path)
+                st.markdown(f"""
+                    <div class="centered">
+                        <img src="data:image/{ext};base64,{img_base64}" width="{width}"/><br>
+                        <p class="small-font">{team_name}</p>
+                    </div>
+                """, unsafe_allow_html=True)
+                return
+        st.warning(f"⚠️ {team_name} 로고 이미지가 없습니다.")
 
-    st.markdown("<div class='centered medium-font'>🥉 3위 후보: <b>{}</b> ({}%)</div>".format(top3_team['팀명'], top3_team['예측 확률']), unsafe_allow_html=True)
-    img_path3 = None
-    for ext in ["png", "jpg", "jpeg"]:
-        candidate = f"images/{top3_team['팀명']}.{ext}"
-        if os.path.exists(candidate):
-            img_path3 = candidate
-            break
-    if img_path3:
-        st.image(Image.open(img_path3), caption=top3_team['팀명'], width=200)
+    # ✅ 1위 팀 로고 출력 (크게)
+    render_team_image(top1_team["팀명"], width=300)
 
+    # ✅ 2위 팀
+    st.markdown(f"<div class='centered medium-font'>🥈 아쉽게 2위: <b>{top2_team['팀명']}</b> ({top2_team['예측 확률']}%)</div>", unsafe_allow_html=True)
+    render_team_image(top2_team["팀명"], width=200)
+
+    # ✅ 3위 팀
+    st.markdown(f"<div class='centered medium-font'>🥉 3위 후보: <b>{top3_team['팀명']}</b> ({top3_team['예측 확률']}%)</div>", unsafe_allow_html=True)
+    render_team_image(top3_team["팀명"], width=200)
+
+    # ✅ 전체 확률
     st.markdown("---")
     with st.expander("🔍 전체 예측 확률 보기"):
         st.dataframe(proba_df, use_container_width=True)
