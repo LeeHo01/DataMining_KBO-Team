@@ -47,18 +47,13 @@ for idx, question in enumerate(questions):
 # ✅ 버튼 클릭 시 예측
 if st.button("✅ 나에게 맞는 팀 추천받기"):
     input_array = np.array(user_input).reshape(1, -1)
-    prediction = rf_model.predict(input_array)[0]
-    predicted_team = label_encoder.inverse_transform([prediction])[0]
     proba = rf_model.predict_proba(input_array)[0]
+    top_indices = np.argsort(proba)[::-1]  # 확률 기준 내림차순 정렬
+    top1_idx, top2_idx, top3_idx = top_indices[:3]
 
-    proba_df = pd.DataFrame({
-        '팀명': label_encoder.classes_,
-        '예측 확률': np.round(proba * 100, 2)
-    }).sort_values(by='예측 확률', ascending=False).reset_index(drop=True)
-
-    top1_team = proba_df.iloc[0]
-    top2_team = proba_df.iloc[1]
-    top3_team = proba_df.iloc[2]
+    top1_team = label_encoder.inverse_transform([top1_idx])[0]
+    top2_team = label_encoder.inverse_transform([top2_idx])[0]
+    top3_team = label_encoder.inverse_transform([top3_idx])[0]
 
     st.markdown("---")
     st.markdown("""
@@ -70,10 +65,11 @@ if st.button("✅ 나에게 맞는 팀 추천받기"):
         </style>
     """, unsafe_allow_html=True)
 
+    # ✅ 1위
     st.markdown(f"""
         <div class='centered big-font'>
             🎉 당신에게 어울리는 팀은... <br><br>
-            <b>{top1_team['팀명']}</b> ({top1_team['예측 확률']}%)
+            <b>{top1_team}</b>
         </div>
     """, unsafe_allow_html=True)
 
@@ -97,17 +93,12 @@ if st.button("✅ 나에게 맞는 팀 추천받기"):
         st.warning(f"⚠️ {team_name} 로고 이미지가 없습니다.")
 
     # ✅ 1위 팀 로고 출력 (크게)
-    render_team_image(top1_team["팀명"], width=300)
+    render_team_image(top1_team, width=300)
 
-    # ✅ 2위 팀
-    st.markdown(f"<div class='centered medium-font'>🥈 2위 후보: <b>{top2_team['팀명']}</b> ({top2_team['예측 확률']}%)</div>", unsafe_allow_html=True)
-    render_team_image(top2_team["팀명"], width=200)
+    # ✅ 2위 팀 (작게, 확률 X)
+    st.markdown(f"<div class='centered medium-font'>🥈 2위 후보: <b>{top2_team}</b></div>", unsafe_allow_html=True)
+    render_team_image(top2_team, width=200)
 
-    # ✅ 3위 팀
-    st.markdown(f"<div class='centered medium-font'>🥉 3위 후보: <b>{top3_team['팀명']}</b> ({top3_team['예측 확률']}%)</div>", unsafe_allow_html=True)
-    render_team_image(top3_team["팀명"], width=200)
-
-    # ✅ 전체 확률
-    st.markdown("---")
-    with st.expander("🔍 전체 예측 확률 보기"):
-        st.dataframe(proba_df, use_container_width=True)
+    # ✅ 3위 팀 (작게, 확률 X)
+    st.markdown(f"<div class='centered medium-font'>🥉 3위 후보: <b>{top3_team}</b></div>", unsafe_allow_html=True)
+    render_team_image(top3_team, width=200)
