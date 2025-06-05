@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import joblib
+import os
 
 # ✅ 모델 및 인코더 불러오기
 rf_model = joblib.load("rf_model.pkl")
@@ -67,13 +68,22 @@ if st.button("✅ 나에게 맞는 팀 추천받기"):
     st.markdown("---")
     st.markdown(f"<div class='big-font'>🎉 당신에게 어울리는 팀은... <br><br><b>{predicted_team}</b>!</div>", unsafe_allow_html=True)
 
-    st.image(f"images/{predicted_team}.png", caption=predicted_team, use_column_width=False, width=300)
+    # ✅ 이미지 표시 (PNG/JPG 등 지원, 없을 시 경고)
+    found_image = False
+    for ext in ["png", "jpg", "jpeg"]:
+        image_path = f"images/{predicted_team}.{ext}"
+        if os.path.exists(image_path):
+            st.image(image_path, caption=predicted_team, width=500)
+            found_image = True
+            break
+    if not found_image:
+        st.warning("⚠️ 해당 팀의 로고 이미지를 찾을 수 없습니다.")
 
     st.markdown("---")
     st.subheader("🔍 각 팀별 예측 확률")
     proba_df = pd.DataFrame({
         '팀명': label_encoder.classes_,
-        '예측 확률': proba
+        '예측 확률': np.round(proba * 100, 2)
     }).sort_values(by='예측 확률', ascending=False)
 
     st.dataframe(proba_df.reset_index(drop=True), use_container_width=True)
