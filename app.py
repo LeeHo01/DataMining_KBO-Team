@@ -2,6 +2,8 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import joblib
+import os
+from PIL import Image
 
 # ✅ 모델 및 인코더 불러오기
 rf_model = joblib.load("rf_model.pkl")
@@ -48,44 +50,40 @@ if st.button("✅ 나에게 맞는 팀 추천받기"):
     predicted_team = label_encoder.inverse_transform([prediction])[0]
     proba = rf_model.predict_proba(input_array)[0]
 
-    # 예측 결과 상위 3개 팀
-    top_indices = np.argsort(proba)[::-1][:3]
-    top_teams = label_encoder.inverse_transform(top_indices)
-    top_scores = proba[top_indices]
-
-    # 화면 전환 효과 + CSS 정의
+    # 화면 전환 효과
     st.markdown("""
         <style>
         .big-font {
-            font-size: 48px !important;
-            text-align: center;
-        }
-        .logo {
-            display: block;
-            margin-left: auto;
-            margin-right: auto;
-            width: 250px;
-        }
-        .small-section {
-            text-align: center;
-            margin-top: 30px;
-        }
-        .small-img {
-            width: 120px;
-            margin-bottom: 8px;
+            font-size:48px !important;
+            text-align:center;
         }
         </style>
     """, unsafe_allow_html=True)
 
-    # ✅ 1위 팀 강조 출력
     st.markdown("---")
-    st.markdown(f"<div class='big-font'>🎉 당신에게 어울리는 팀은...<br><br><b>{predicted_team}</b>!</div>", unsafe_allow_html=True)
-    st.image(f"images/{predicted_team}.png", caption=predicted_team, width=250)
+    st.markdown(f"<div class='big-font'>🎉 당신에게 어울리는 팀은... <br><br><b>{predicted_team}</b>!</div>", unsafe_allow_html=True)
 
-    # ✅ 2~3위 팀 간략히 표시
-    st.markdown("<div class='small-section'>", unsafe_allow_html=True)
-    for i in range(1, 3):
-        st.image(f"images/{top_teams[i]}.png", caption=f"{top_teams[i]} ({top_scores[i]*100:.1f}%)", width=120)
-    st.markdown("</div>", unsafe_allow_html=True)
+    # ✅ 이미지 로딩 (확장자 자동 탐색)
+    image_found = False
+    for ext in ["png", "jpg", "jpeg"]:
+        image_path = f"images/{predicted_team}.{ext}"
+        if os.path.exists(image_path):
+            try:
+                img = Image.open(image_path)
+                st.image(img, caption=predicted_team, width=500)
+                image_found = True
+                break
+            except:
+                st.warning("이미지를 열 수 없습니다.")
+                break
+    if not image_found:
+        st.warning("⚠️ 해당 팀의 로고 이미지를 찾을 수 없습니다.")
 
     st.markdown("---")
+    st.subheader("🔍 각 팀별 예측 확률")
+    proba_df = pd.DataFrame({
+        '팀명': label_encoder.classes_,
+        '예측 확률': np.round(proba * 100, 2)
+    }).sort_values(by='예측 확률', ascending=False)
+
+    st.dataframe(proba_df.reset_index(drop=True), use_container_width=True)
