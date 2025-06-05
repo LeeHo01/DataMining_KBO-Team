@@ -4,10 +4,10 @@ import numpy as np
 import joblib
 
 # ✅ 모델 및 인코더 불러오기
-model = joblib.load("rf_model.pkl")
+rf_model = joblib.load("rf_model.pkl")
 label_encoder = joblib.load("label_encoder.pkl")
 
-# ✅ 질문 목록 정의
+# ✅ 문항 정의
 questions = [
     "본인이 응원하는 팀의 수비력은 얼마나 뛰어나야 된다고 생각하십니까?",
     "본인이 응원하는 팀의 투수력은 얼마나 강해야 된다고 생각하십니까?",
@@ -27,36 +27,53 @@ questions = [
     "본인이 응원하는 팀 선수들의 도덕성과 인성이 중요하다고 생각하십니까?"
 ]
 
-st.set_page_config(page_title="KBO 팀 추천기", layout="wide")
-st.title("📊 KBO 팀 성향 기반 추천기")
-st.markdown("""
-    성향에 따라 가장 어울리는 KBO 팀을 추천해드립니다! 
-    아래 질문에 대한 응답을 1~10점 척도로 선택해 주세요.
-""")
+# ✅ Streamlit 화면 구성
+st.set_page_config(page_title="KBO 팀 추천", layout="wide")
+st.title("⚾ 나의 성향 기반 KBO 팀 추천")
+st.markdown("16개의 문항에 답해주세요. (1점 = 중요하지 않음, 10점 = 매우 중요)")
 
 # ✅ 사용자 입력 받기
 user_input = []
-with st.form("survey_form"):
-    for q in questions:
-        score = st.slider(q, 1, 10, 5)
-        user_input.append(score)
-    submitted = st.form_submit_button("팀 추천받기")
+for idx, question in enumerate(questions):
+    st.markdown(f"### Q{idx+1}. {question}")
+    col1, col2 = st.columns([1, 9])
+    with col2:
+        selected = st.radio("", options=list(range(1, 11)), horizontal=True, key=f"q_{idx}")
+    user_input.append(selected)
 
-# ✅ 예측 및 결과 출력
-if submitted:
-    user_array = np.array(user_input).reshape(1, -1)
-    pred = model.predict(user_array)[0]
-    proba = model.predict_proba(user_array)[0]
+# ✅ 버튼 클릭 시 예측
+if st.button("✅ 나에게 맞는 팀 추천받기"):
+    input_array = np.array(user_input).reshape(1, -1)
+    prediction = rf_model.predict(input_array)[0]
+    predicted_team = label_encoder.inverse_transform([prediction])[0]
+    proba = rf_model.predict_proba(input_array)[0]
 
-    team = label_encoder.inverse_transform([pred])[0]
-
-    st.subheader(f"🎉 당신에게 추천되는 팀은: 🧢 **{team}**")
+    # 화면 전환 효과
+    st.markdown("""
+        <style>
+        .big-font {
+            font-size:48px !important;
+            text-align:center;
+        }
+        .logo {
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+            width: 200px;
+        }
+        </style>
+    """, unsafe_allow_html=True)
 
     st.markdown("---")
-    st.write("🔍 각 팀이 추천될 확률:")
+    st.markdown(f"<div class='big-font'>🎉 당신에게 어울리는 팀은... <br><br><b>{predicted_team}</b>!</div>", unsafe_allow_html=True)
+
+    st.image(f"images/{predicted_team}.png", caption=predicted_team, use_column_width=False, width=300)
+
+    st.markdown("---")
+    st.subheader("🔍 각 팀별 예측 확률")
     proba_df = pd.DataFrame({
-        "팀": label_encoder.classes_,
-        "추천 확률 (%)": np.round(proba * 100, 2)
-    }).sort_values("추천 확률 (%)", ascending=False)
+        '팀명': label_encoder.classes_,
+        '예측 확률': proba
+    }).sort_values(by='예측 확률', ascending=False)
 
     st.dataframe(proba_df.reset_index(drop=True), use_container_width=True)
