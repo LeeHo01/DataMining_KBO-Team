@@ -70,7 +70,12 @@ if st.button("✅ 나에게 맞는 팀 추천받기"):
         </style>
     """, unsafe_allow_html=True)
 
-    st.markdown(f"<div class='centered big-font'>🎉 당신에게 어울리는 팀은... <br><br><b>{top1_team['팀명']}</b>!</div>", unsafe_allow_html=True)
+    st.markdown(f"""
+        <div class='centered big-font'>
+            🎉 당신에게 어울리는 팀은... <br><br>
+            <b>{top1_team['팀명']}</b> ({top1_team['예측 확률']}%)
+        </div>
+    """, unsafe_allow_html=True)
 
     def get_base64_image(image_path):
         with open(image_path, "rb") as f:
@@ -95,7 +100,7 @@ if st.button("✅ 나에게 맞는 팀 추천받기"):
     render_team_image(top1_team["팀명"], width=300)
 
     # ✅ 2위 팀
-    st.markdown(f"<div class='centered medium-font'>🥈 아쉽게 2위: <b>{top2_team['팀명']}</b> ({top2_team['예측 확률']}%)</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='centered medium-font'>🥈 2위 후보: <b>{top2_team['팀명']}</b> ({top2_team['예측 확률']}%)</div>", unsafe_allow_html=True)
     render_team_image(top2_team["팀명"], width=200)
 
     # ✅ 3위 팀
