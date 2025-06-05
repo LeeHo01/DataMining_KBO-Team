@@ -50,40 +50,57 @@ if st.button("✅ 나에게 맞는 팀 추천받기"):
     predicted_team = label_encoder.inverse_transform([prediction])[0]
     proba = rf_model.predict_proba(input_array)[0]
 
-    # 화면 전환 효과
-    st.markdown("""
-        <style>
-        .big-font {
-            font-size:48px !important;
-            text-align:center;
-        }
-        </style>
-    """, unsafe_allow_html=True)
-
-    st.markdown("---")
-    st.markdown(f"<div class='big-font'>🎉 당신에게 어울리는 팀은... <br><br><b>{predicted_team}</b>!</div>", unsafe_allow_html=True)
-
-    # ✅ 이미지 로딩 (확장자 자동 탐색)
-    image_found = False
-    for ext in ["png", "jpg", "jpeg"]:
-        image_path = f"images/{predicted_team}.{ext}"
-        if os.path.exists(image_path):
-            try:
-                img = Image.open(image_path)
-                st.image(img, caption=predicted_team, width=500)
-                image_found = True
-                break
-            except:
-                st.warning("이미지를 열 수 없습니다.")
-                break
-    if not image_found:
-        st.warning("⚠️ 해당 팀의 로고 이미지를 찾을 수 없습니다.")
-
-    st.markdown("---")
-    st.subheader("🔍 각 팀별 예측 확률")
     proba_df = pd.DataFrame({
         '팀명': label_encoder.classes_,
         '예측 확률': np.round(proba * 100, 2)
-    }).sort_values(by='예측 확률', ascending=False)
+    }).sort_values(by='예측 확률', ascending=False).reset_index(drop=True)
 
-    st.dataframe(proba_df.reset_index(drop=True), use_container_width=True)
+    top1_team = proba_df.iloc[0]
+    top2_team = proba_df.iloc[1]
+    top3_team = proba_df.iloc[2]
+
+    st.markdown("---")
+    st.markdown("""
+        <style>
+        .centered { text-align: center; }
+        .big-font { font-size: 50px !important; }
+        .medium-font { font-size: 32px !important; }
+        </style>
+    """, unsafe_allow_html=True)
+
+    st.markdown(f"<div class='centered big-font'>🎉 당신에게 어울리는 팀은... <br><br><b>{top1_team['팀명']}</b>!</div>", unsafe_allow_html=True)
+
+    # ✅ 1위 로고 출력
+    img_path = None
+    for ext in ["png", "jpg", "jpeg"]:
+        candidate = f"images/{top1_team['팀명']}.{ext}"
+        if os.path.exists(candidate):
+            img_path = candidate
+            break
+    if img_path:
+        st.image(Image.open(img_path), caption=top1_team['팀명'], width=300)
+
+    # ✅ 2~3위 결과
+    st.markdown("<div class='centered medium-font'>🥈 아쉽게 2위: <b>{}</b> ({}%)</div>".format(top2_team['팀명'], top2_team['예측 확률']), unsafe_allow_html=True)
+    img_path2 = None
+    for ext in ["png", "jpg", "jpeg"]:
+        candidate = f"images/{top2_team['팀명']}.{ext}"
+        if os.path.exists(candidate):
+            img_path2 = candidate
+            break
+    if img_path2:
+        st.image(Image.open(img_path2), caption=top2_team['팀명'], width=200)
+
+    st.markdown("<div class='centered medium-font'>🥉 3위 후보: <b>{}</b> ({}%)</div>".format(top3_team['팀명'], top3_team['예측 확률']), unsafe_allow_html=True)
+    img_path3 = None
+    for ext in ["png", "jpg", "jpeg"]:
+        candidate = f"images/{top3_team['팀명']}.{ext}"
+        if os.path.exists(candidate):
+            img_path3 = candidate
+            break
+    if img_path3:
+        st.image(Image.open(img_path3), caption=top3_team['팀명'], width=200)
+
+    st.markdown("---")
+    with st.expander("🔍 전체 예측 확률 보기"):
+        st.dataframe(proba_df, use_container_width=True)
